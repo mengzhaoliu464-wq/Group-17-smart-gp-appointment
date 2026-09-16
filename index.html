@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart GP Appointment Management System — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#F3F6FA;
+    --surface:#FFFFFF;
+    --surface-alt:#EAF0F6;
+    --sidebar:#153352;
+    --sidebar-text:#C9D9E8;
+    --sidebar-text-active:#FFFFFF;
+    --primary:#1F4E79;
+    --primary-dark:#153A5C;
+    --primary-light:#5C93C4;
+    --accent:#2F8F5B;
+    --accent-light:#DCEEE3;
+    --warn:#9C6B0B;
+    --warn-light:#F6E8CB;
+    --danger:#B3261E;
+    --danger-light:#F7DEDC;
+    --text:#1B2430;
+    --muted:#5B6672;
+    --border:#DCE3EA;
+    --radius:6px;
+    --font-ui: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-display: 'Source Serif 4', Georgia, serif;
+  }
+  :root:not([data-theme="light"]){}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1620;
+      --surface:#16202C;
+      --surface-alt:#111925;
+      --sidebar:#0A141F;
+      --sidebar-text:#8FA3B8;
+      --sidebar-text-active:#FFFFFF;
+      --primary:#5C93C4;
+      --primary-dark:#3E6E97;
+      --primary-light:#7FB0DC;
+      --accent:#4FB37F;
+      --accent-light:#183226;
+      --warn:#D9A441;
+      --warn-light:#332711;
+      --danger:#E2685F;
+      --danger-light:#331715;
+      --text:#E7ECF1;
+      --muted:#93A1AF;
+      --border:#28323F;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1620;
+    --surface:#16202C;
+    --surface-alt:#111925;
+    --sidebar:#0A141F;
+    --sidebar-text:#8FA3B8;
+    --sidebar-text-active:#FFFFFF;
+    --primary:#5C93C4;
+    --primary-dark:#3E6E97;
+    --primary-light:#7FB0DC;
+    --accent:#4FB37F;
+    --accent-light:#183226;
+    --warn:#D9A441;
+    --warn-light:#332711;
+    --danger:#E2685F;
+    --danger-light:#331715;
+    --text:#E7ECF1;
+    --muted:#93A1AF;
+    --border:#28323F;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-ui);
+    font-size:14.5px;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; margin:0 0 4px 0; color:var(--text); }
+  button{ font-family:inherit; }
+  a{ color:var(--primary); }
+  input, select, textarea{
+    font-family:inherit; font-size:14px; padding:8px 10px;
+    border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text);
+    width:100%;
+  }
+  input:focus, select:focus, textarea:focus, button:focus-visible{
+    outline:2px solid var(--primary-light); outline-offset:1px;
+  }
+  label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:4px; font-weight:500; }
+  .field{ margin-bottom:14px; }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px 16px; border-radius:4px; border:1px solid transparent;
+    font-size:14px; font-weight:600; cursor:pointer; transition:background .12s ease, border-color .12s ease;
+  }
+  .btn-primary{ background:var(--primary); color:#fff; }
+  .btn-primary:hover{ background:var(--primary-dark); }
+  .btn-secondary{ background:transparent; color:var(--primary); border-color:var(--primary); }
+  .btn-secondary:hover{ background:var(--accent-light); }
+  .btn-danger{ background:transparent; color:var(--danger); border-color:var(--danger); }
+  .btn-danger:hover{ background:var(--danger-light); }
+  .btn-ghost{ background:transparent; color:var(--muted); border-color:var(--border); }
+  .btn-ghost:hover{ background:var(--surface-alt); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-sm{ padding:5px 10px; font-size:12.5px; }
+
+  /* ===== App shell ===== */
+  #app{ display:none; min-height:100vh; }
+  #app.active{ display:flex; }
+  .sidebar{
+    background:var(--sidebar); color:var(--sidebar-text);
+    padding:20px 14px; display:flex; flex-direction:column; gap:2px;
+    width:220px; flex:0 0 220px;
+  }
+  .brand{ display:flex; align-items:center; gap:8px; margin-bottom:22px; padding:0 6px; }
+  .brand-mark{ width:30px; height:30px; border-radius:7px; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:16px; flex:none; }
+  .brand-text{ font-family:var(--font-display); font-weight:600; font-size:14px; color:#fff; line-height:1.2; }
+  .brand-text small{ display:block; font-family:var(--font-ui); font-weight:400; font-size:10.5px; color:var(--sidebar-text); letter-spacing:.02em; }
+  .nav-section-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:#6E88A3; margin:16px 8px 6px; }
+  .nav-item{
+    display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:5px;
+    color:var(--sidebar-text); cursor:pointer; font-size:13.5px; font-weight:500;
+    border:1px solid transparent;
+  }
+  .nav-item:hover{ background:rgba(255,255,255,.06); }
+  .nav-item.active{ background:rgba(255,255,255,.12); color:var(--sidebar-text-active); }
+  .nav-icon{ width:16px; text-align:center; opacity:.9; }
+  .sidebar-foot{ margin-top:auto; padding-top:14px; border-top:1px solid rgba(255,255,255,.12); }
+  .role-chip{ display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:5px; background:rgba(255,255,255,.06); margin-bottom:8px; }
+  .role-chip .avatar{ width:26px; height:26px; border-radius:50%; background:var(--primary-light); color:#0A1420; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex:none; }
+  .role-chip .who{ font-size:12.5px; line-height:1.25; }
+  .role-chip .who b{ display:block; color:#fff; font-size:13px; }
+
+  .main{ padding:24px 30px 60px; max-width:1180px; flex:1 1 auto; min-width:0; }
+  .topbar{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:10px; }
+  .topbar h1{ font-size:22px; }
+  .topbar .sub{ color:var(--muted); font-size:13px; margin-top:2px; }
+  .demo-banner{
+    background:var(--accent-light); border:1px solid var(--accent); color:var(--text);
+    padding:9px 14px; border-radius:5px; font-size:12.5px; margin-bottom:18px; display:flex; gap:8px; align-items:center;
+  }
+  .demo-banner b{ color:var(--accent); }
+
+  .panel{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px 22px; margin-bottom:18px;
+  }
+  .panel h2{ font-size:16px; margin-bottom:2px; }
+  .panel .panel-desc{ color:var(--muted); font-size:12.5px; margin-bottom:16px; }
+  .grid-2{ display:flex; flex-wrap:wrap; gap:14px; }
+  .grid-2 > *{ flex:1 1 260px; min-width:0; }
+  .grid-3{ display:flex; flex-wrap:wrap; gap:14px; }
+  .grid-3 > *{ flex:1 1 200px; min-width:0; }
+  @media (max-width:720px){ .sidebar{ display:none; } #app.active{ display:block; } }
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--border); }
+  td{ padding:10px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  .empty-row td{ color:var(--muted); font-style:italic; text-align:center; padding:26px 10px; }
+
+  .badge{ display:inline-flex; align-items:center; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600; }
+  .badge-booked{ background:var(--accent-light); color:var(--accent); }
+  .badge-cancelled{ background:var(--danger-light); color:var(--danger); }
+  .badge-completed{ background:var(--surface-alt); color:var(--muted); }
+  .badge-noshow{ background:var(--warn-light); color:var(--warn); }
+  .badge-waitlist{ background:var(--warn-light); color:var(--warn); }
+
+  .gp-load{ display:flex; align-items:center; gap:8px; }
+  .gp-load-bar{ width:64px; height:6px; border-radius:3px; background:var(--surface-alt); overflow:hidden; flex:none; }
+  .gp-load-bar > span{ display:block; height:100%; background:var(--accent); }
+  .gp-load-bar.high > span{ background:var(--danger); }
+  .gp-load-bar.mid > span{ background:var(--warn); }
+
+  .recommend-card{
+    display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+    background:var(--accent-light); border:1px solid var(--accent); border-radius:var(--radius); padding:16px 18px; margin-bottom:14px;
+  }
+  .recommend-card .who{ font-size:15px; font-weight:700; }
+  .recommend-card .why{ font-size:12.5px; color:var(--muted); margin-top:3px; }
+
+  .no-slot-card{
+    background:var(--warn-light); border:1px solid var(--warn); border-radius:var(--radius); padding:16px 18px; margin-bottom:14px;
+  }
+
+  .stat{ text-align:left; }
+  .stat .num{ font-family:var(--font-display); font-size:28px; font-weight:600; color:var(--primary); line-height:1; }
+  .stat .label{ font-size:12px; color:var(--muted); margin-top:5px; }
+
+  .chart-wrap{ position:relative; height:230px; }
+
+  .toast-stack{ position:fixed; bottom:18px; right:18px; display:flex; flex-direction:column; gap:8px; z-index:1000; width:300px; }
+  .toast{
+    background:var(--primary-dark); color:#fff; padding:11px 14px; border-radius:6px; font-size:13px;
+    box-shadow:0 4px 14px rgba(0,0,0,.18); display:flex; gap:8px; align-items:flex-start;
+    animation:toast-in .18s ease-out;
+  }
+  .toast .dot{ width:6px; height:6px; border-radius:50%; background:var(--accent); margin-top:6px; flex:none; }
+  @keyframes toast-in{ from{ opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ===== Login screen ===== */
+  #login-screen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .login-wrap{ width:100%; max-width:920px; display:flex; flex-wrap:wrap; border-radius:10px; overflow:hidden; border:1px solid var(--border); }
+  .login-hero{
+    background:linear-gradient(165deg, var(--primary) 0%, var(--primary-dark) 100%); color:#fff; padding:40px 34px;
+    display:flex; flex-direction:column; justify-content:space-between; flex:1 1 380px;
+  }
+  .login-hero h1{ font-size:26px; color:#fff; line-height:1.25; }
+  .login-hero .tag{ color:#CFE0F0; font-size:13.5px; margin-top:10px; line-height:1.6; }
+  .login-hero .pillars{ margin-top:26px; display:flex; flex-direction:column; gap:10px; }
+  .pillar{ display:flex; gap:10px; align-items:flex-start; font-size:12.5px; color:#DCE9F5; }
+  .pillar .n{ width:20px; height:20px; border-radius:50%; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex:none; }
+  .login-panel{ background:var(--surface); padding:34px 30px; flex:1 1 380px; }
+  .role-tabs{ display:flex; gap:6px; margin-bottom:18px; background:var(--surface-alt); padding:4px; border-radius:6px; }
+  .role-tab{ flex:1; text-align:center; padding:7px 6px; border-radius:4px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--muted); }
+  .role-tab.active{ background:var(--surface); color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .demo-login-list{ display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+  .demo-login-item{
+    display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border); border-radius:5px;
+    padding:10px 12px; cursor:pointer;
+  }
+  .demo-login-item:hover{ border-color:var(--primary); background:var(--accent-light); }
+  .demo-login-item .name{ font-weight:600; font-size:13.5px; }
+  .demo-login-item .role{ font-size:11.5px; color:var(--muted); }
+
+  .footnote{ font-size:11.5px; color:var(--muted); margin-top:16px; line-height:1.5; }
+  .switch-role-link{ font-size:11.5px; color:var(--muted); text-align:center; margin-top:14px; cursor:pointer; }
+  .switch-role-link:hover{ color:var(--primary); }
+
+  .divider{ height:1px; background:var(--border); margin:16px 0; }
+  .inline-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .muted{ color:var(--muted); }
+  .small{ font-size:12px; }
+  .hidden{ display:none !important; }
+  ::selection{ background:var(--primary-light); color:#0A1420; }
+</style>
+</head>
+<body>
+
+<!-- ============================ LOGIN SCREEN ============================ -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-hero">
+      <div>
+        <h1>Smart GP Appointment&nbsp;Management&nbsp;System</h1>
+        <div class="tag">Prototype for Top End Medical Centre, Casuarina, Darwin — PRT631 Group 17</div>
+      </div>
+      <div class="pillars">
+        <div class="pillar"><div class="n">1</div><div>Best-fit, workload-balanced GP recommendations for every booking</div></div>
+        <div class="pillar"><div class="n">2</div><div>Self-service booking, rescheduling and an automatic waitlist</div></div>
+        <div class="pillar"><div class="n">3</div><div>A live schedule for reception and a real-time clinic analytics dashboard</div></div>
+      </div>
+    </div>
+    <div class="login-panel">
+      <div class="role-tabs" role="tablist">
+        <div class="role-tab active" data-tab="patient">Patient</div>
+        <div class="role-tab" data-tab="staff">Clinic staff</div>
+      </div>
+
+      <div id="tab-patient">
+        <div class="field">
+          <label for="patient-name">Full name</label>
+          <input id="patient-name" type="text" placeholder="e.g. Maria Santos" />
+        </div>
+        <div class="field">
+          <label for="patient-contact">Email or mobile (for reminders)</label>
+          <input id="patient-contact" type="text" placeholder="e.g. maria@example.com" />
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="loginAsNewPatient()">Register &amp; enter patient portal</button>
+        <div class="divider"></div>
+        <div class="small muted" style="margin-bottom:8px; font-weight:600;">Or continue as a demo patient</div>
+        <div class="demo-login-list" id="demo-patient-list"></div>
+      </div>
+
+      <div id="tab-staff" class="hidden">
+        <div class="small muted" style="margin-bottom:8px; font-weight:600;">Choose a staff demo account</div>
+        <div class="demo-login-list" id="demo-staff-list"></div>
+      </div>
+
+      <div class="footnote">Demo prototype — all patient, GP and appointment data shown is synthetic and used for demonstration only. No real patient information is stored.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ APP SHELL ============================ -->
+<div id="app">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">🩺</div>
+      <div class="brand-text">Smart GP<br/>Appointments<small>Top End Medical Centre</small></div>
+    </div>
+    <div id="nav-items"></div>
+    <div class="sidebar-foot">
+      <div class="role-chip">
+        <div class="avatar" id="avatar-initial">?</div>
+        <div class="who"><b id="who-name">—</b><span id="who-role">—</span></div>
+      </div>
+      <div class="nav-item" onclick="resetDemoData()"><span class="nav-icon">↺</span> Reset demo data</div>
+      <div class="nav-item" onclick="logout()"><span class="nav-icon">⏻</span> Switch account</div>
+    </div>
+  </div>
+  <div class="main" id="main"></div>
+</div>
+
+<div class="toast-stack" id="toast-stack"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================================
+   DATA MODEL & SEED DATA
+   ========================================================================= */
+
+var STORAGE_KEY = "smartgp_prototype_v1";
+
+function isoDate(d){ return d.toISOString().slice(0,10); }
+function addDays(base, n){ var d = new Date(base); d.setDate(d.getDate()+n); return d; }
+var TODAY = new Date(); TODAY.setHours(0,0,0,0);
+
+var REASON_OPTIONS = [
+  "General check-up",
+  "Paediatric concern",
+  "Women's health",
+  "Skin condition",
+  "Mental health check-in",
+  "Follow-up consultation",
+  "Vaccination",
+  "Chronic condition review"
+];
+
+var SPECIALTY_MAP = {
+  "Paediatric concern": "Paediatrics",
+  "Women's health": "Women's Health"
+};
+
+var TIME_SLOTS = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM",
+                   "1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM"];
+
+function defaultData(){
+  var gps = [
+    { id:"gp1", name:"Dr Amara Nguyen", specialty:"Paediatrics", color:"#2F8F5B" },
+    { id:"gp2", name:"Dr Raj Patel",    specialty:"General Practice", color:"#1F4E79" },
+    { id:"gp3", name:"Dr Li Chen",      specialty:"General Practice", color:"#9C6B0B" },
+    { id:"gp4", name:"Dr Ifeoma Okafor",specialty:"Women's Health", color:"#7A4FA3" },
+    { id:"gp5", name:"Dr Sam Whitfield",specialty:"General Practice", color:"#0E7C86" }
+  ];
+
+  var patients = [
+    { id:"p1", name:"Maria Santos", contact:"maria@example.com" },
+    { id:"p2", name:"Tom Reilly",   contact:"tom.reilly@example.com" },
+    { id:"p3", name:"Aisha Karim",  contact:"aisha.k@example.com" }
+  ];
+
+  var appts = [];
+  var idc = 1;
+  function A(patientId,patientName,gpId,dayOffset,time,reason,status){
+    appts.push({
+      id:"a"+(idc++), patientId:patientId, patientName:patientName, gpId:gpId,
+      date: isoDate(addDays(TODAY, dayOffset)), time:time, reason:reason, status:status,
+      createdAt: Date.now()
+    });
+  }
+
+  // Seed a realistic, imbalanced week: Dr Patel overbooked, Dr Whitfield light,
+  // plus a mix of cancelled / no-show history so the dashboard has real trend data.
+  A("p2","Tom Reilly","gp2",-2,"9:00 AM","General check-up","Completed");
+  A("p3","Aisha Karim","gp2",-2,"10:00 AM","Follow-up consultation","No-show");
+  A("p1","Maria Santos","gp1",-1,"1:00 PM","Paediatric concern","Completed");
+  A("p2","Tom Reilly","gp2",-1,"9:30 AM","Skin condition","Completed");
+  A("p3","Aisha Karim","gp4",-1,"11:00 AM","Women's health","Completed");
+  A("p1","Maria Santos","gp2",0,"9:00 AM","Follow-up consultation","Cancelled");
+  A("p2","Tom Reilly","gp2",0,"10:00 AM","General check-up","Booked");
+  A("p3","Aisha Karim","gp2",0,"10:30 AM","Chronic condition review","Booked");
+  A("p1","Maria Santos","gp3",0,"2:00 PM","Mental health check-in","Booked");
+  A("p2","Tom Reilly","gp5",1,"9:00 AM","Vaccination","Booked");
+  A("p3","Aisha Karim","gp2",1,"9:30 AM","General check-up","Booked");
+  A("p1","Maria Santos","gp2",1,"11:00 AM","Follow-up consultation","Booked");
+  A("p2","Tom Reilly","gp1",2,"1:30 PM","Paediatric concern","Booked");
+  A("p3","Aisha Karim","gp4",3,"10:00 AM","Women's health","Booked");
+
+  return {
+    gps: gps,
+    patients: patients,
+    appointments: appts,
+    waitlist: [],
+    notifications: [
+      { id:"n0", ts:Date.now(), text:"Welcome to the Smart GP Appointment Management System demo.", audience:"system" }
+    ],
+    clinicSettings: {
+      hours:"8:00 AM – 5:00 PM, Mon–Fri",
+      apptTypes: REASON_OPTIONS.slice()
+    },
+    nextId: idc
+  };
+}
+
+var data = null;
+
+function loadData(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ data = JSON.parse(raw); return; }
+  }catch(e){ /* storage unavailable — fall back to in-memory defaults */ }
+  data = defaultData();
+}
+function saveData(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){ /* ignore quota / privacy-mode errors */ }
+}
+function resetDemoData(){
+  if(!confirm("Reset all demo data to its original seeded state? This clears every booking made during this demo.")) return;
+  data = defaultData();
+  saveData();
+  toast("Demo data has been reset.");
+  render();
+}
+
+/* =========================================================================
+   SESSION (not persisted — always starts at login)
+   ========================================================================= */
+var session = { role:null, patientId:null, gpId:null };
+
+/* =========================================================================
+   HELPERS
+   ========================================================================= */
+function byId(arr,id){ for(var i=0;i<arr.length;i++){ if(arr[i].id===id) return arr[i]; } return null; }
+function gpById(id){ return byId(data.gps,id); }
+function patientById(id){ return byId(data.patients,id); }
+function fmtDate(iso){
+  var d = new Date(iso+"T00:00:00");
+  return d.toLocaleDateString(undefined,{ weekday:'short', month:'short', day:'numeric' });
+}
+function todayLabel(dayOffset){
+  if(dayOffset===0) return "Today";
+  if(dayOffset===1) return "Tomorrow";
+  return fmtDate(isoDate(addDays(TODAY,dayOffset)));
+}
+function caseload(gpId){
+  return data.appointments.filter(function(a){ return a.gpId===gpId && a.status==="Booked"; }).length;
+}
+function maxCaseload(){
+  var m=1; data.gps.forEach(function(g){ m=Math.max(m,caseload(g.id)); }); return m;
+}
+function badge(status){
+  var map={ Booked:"badge-booked", Cancelled:"badge-cancelled", Completed:"badge-completed", "No-show":"badge-noshow" };
+  return '<span class="badge '+(map[status]||"badge-completed")+'">'+status+'</span>';
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+function toast(text){
+  var stack = document.getElementById("toast-stack");
+  var el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = '<div class="dot"></div><div>'+escapeHtml(text)+'</div>';
+  stack.appendChild(el);
+  setTimeout(function(){ el.style.transition="opacity .25s"; el.style.opacity="0";
+    setTimeout(function(){ stack.removeChild(el); }, 260);
+  }, 3600);
+}
+function notify(text, audience){
+  data.notifications.unshift({ id:"n"+Date.now()+Math.random().toString(16).slice(2), ts:Date.now(), text:text, audience:audience||"system" });
+  if(data.notifications.length>60) data.notifications.length=60;
+}
+function newId(prefix){ data.nextId = (data.nextId||1)+1; return prefix+data.nextId; }
+
+/* =========================================================================
+   CORE BUSINESS LOGIC  (FR-10 allocation, FR-12 waitlist re-offer, etc.)
+   ========================================================================= */
+
+// Recommend the best-fit, least-loaded GP for a reason.
+// Best-fit = specialty match when the reason maps to one; else any GP.
+function recommendGp(reason, dayOffset, time){
+  var wantSpecialty = SPECIALTY_MAP[reason] || null;
+  var pool = data.gps.filter(function(g){
+    return wantSpecialty ? g.specialty===wantSpecialty : true;
+  });
+  if(pool.length===0) pool = data.gps.slice();
+
+  // Prefer GPs free at the requested date/time, ranked by lowest caseload.
+  var free = pool.filter(function(g){ return isSlotFree(g.id, dayOffset, time); });
+  var candidates = free.length ? free : pool;
+
+  candidates = candidates.slice().sort(function(a,b){ return caseload(a.id)-caseload(b.id); });
+  return { gp:candidates[0], hadFreeSlot: free.length>0 };
+}
+
+function isSlotFree(gpId, dayOffset, time){
+  var dateIso = isoDate(addDays(TODAY, dayOffset));
+  return !data.appointments.some(function(a){
+    return a.gpId===gpId && a.date===dateIso && a.time===time && a.status==="Booked";
+  });
+}
+
+function bookAppointment(patientId, patientName, gpId, dayOffset, time, reason){
+  var appt = {
+    id:newId("a"), patientId:patientId, patientName:patientName, gpId:gpId,
+    date: isoDate(addDays(TODAY,dayOffset)), time:time, reason:reason, status:"Booked",
+    createdAt: Date.now()
+  };
+  data.appointments.push(appt);
+  var gp = gpById(gpId);
+  notify("Reminder scheduled: "+patientName+" with "+gp.name+" on "+todayLabel(dayOffset)+" at "+time+".", "patient");
+  notify("New booking: "+patientName+" → "+gp.name+" ("+todayLabel(dayOffset)+", "+time+").", "reception");
+  saveData();
+  return appt;
+}
+
+function cancelAppointment(apptId, cancelledBy){
+  var appt = byId(data.appointments, apptId);
+  if(!appt) return;
+  appt.status = "Cancelled";
+  notify((cancelledBy||"Patient")+" cancelled "+appt.patientName+"'s "+todayLabel(dateOffsetFromIso(appt.date))+" "+appt.time+" slot with "+gpById(appt.gpId).name+".","reception");
+
+  // FR-12: auto re-offer the freed slot to the next matching waitlist entry.
+  var match = null, matchIdx = -1;
+  data.waitlist.forEach(function(w,idx){
+    if(match) return;
+    if(w.reason===appt.reason || !w.reason){ match=w; matchIdx=idx; }
+  });
+  if(!match && data.waitlist.length){ match = data.waitlist[0]; matchIdx = 0; }
+
+  if(match){
+    data.waitlist.splice(matchIdx,1);
+    var offered = {
+      id:newId("a"), patientId:match.patientId, patientName:match.patientName, gpId:appt.gpId,
+      date: appt.date, time: appt.time, reason: match.reason||appt.reason, status:"Booked",
+      createdAt: Date.now()
+    };
+    data.appointments.push(offered);
+    notify("Waitlist auto-offer: the freed slot with "+gpById(appt.gpId).name+" on "+todayLabel(dateOffsetFromIso(appt.date))+" at "+appt.time+" was automatically offered to "+match.patientName+".", "patient");
+    saveData();
+    return { reoffered:true, to:match.patientName };
+  }
+  saveData();
+  return { reoffered:false };
+}
+
+function dateOffsetFromIso(iso){
+  var d = new Date(iso+"T00:00:00");
+  return Math.round((d-TODAY)/86400000);
+}
+
+function joinWaitlist(patientId, patientName, reason){
+  data.waitlist.push({ id:newId("w"), patientId:patientId, patientName:patientName, reason:reason, dateAdded:Date.now() });
+  notify(patientName+" joined the waitlist for \u201C"+reason+"\u201D.", "reception");
+  saveData();
+}
+
+function overrideGp(apptId, newGpId){
+  var appt = byId(data.appointments, apptId);
+  if(!appt) return;
+  var oldGp = gpById(appt.gpId), newGp = gpById(newGpId);
+  appt.gpId = newGpId;
+  notify("Reception override: "+appt.patientName+"'s booking moved from "+oldGp.name+" to "+newGp.name+".", "reception");
+  saveData();
+}
+
+/* =========================================================================
+   RENDERING — LOGIN
+   ========================================================================= */
+
+function renderLogin(){
+  var pList = document.getElementById("demo-patient-list");
+  pList.innerHTML = data.patients.map(function(p){
+    return '<div class="demo-login-item" onclick="loginAsPatient(\''+p.id+'\')">'+
+      '<div><div class="name">'+escapeHtml(p.name)+'</div><div class="role">Patient demo account</div></div>'+
+      '<div class="muted small">Enter →</div></div>';
+  }).join("");
+
+  var sList = document.getElementById("demo-staff-list");
+  var staffRoles = [
+    { role:"reception", label:"Reception Staff", who:"Front desk team" },
+    { role:"gp", label:"GP — "+data.gps[1].name, who:data.gps[1].id },
+    { role:"gp", label:"GP — "+data.gps[0].name, who:data.gps[0].id },
+    { role:"manager", label:"Clinic Manager", who:"Practice management" }
+  ];
+  sList.innerHTML = staffRoles.map(function(s){
+    return '<div class="demo-login-item" onclick="loginAsStaff(\''+s.role+'\',\''+(s.role==="gp"?s.who:"")+'\')">'+
+      '<div><div class="name">'+escapeHtml(s.label)+'</div><div class="role">'+(s.role==="gp"?"GP demo account":s.who)+'</div></div>'+
+      '<div class="muted small">Enter →</div></div>';
+  }).join("");
+}
+
+window.loginAsPatient = function(id){
+  session = { role:"patient", patientId:id, gpId:null };
+  enterApp();
+};
+window.loginAsNewPatient = function(){
+  var name = document.getElementById("patient-name").value.trim();
+  var contact = document.getElementById("patient-contact").value.trim();
+  if(!name){ toast("Please enter a name to register."); return; }
+  var p = { id:newId("p"), name:name, contact:contact||"(no contact provided)" };
+  data.patients.push(p);
+  saveData();
+  session = { role:"patient", patientId:p.id, gpId:null };
+  toast("Account created — welcome, "+name+".");
+  enterApp();
+};
+window.loginAsStaff = function(role, gpId){
+  session = { role:role, patientId:null, gpId: role==="gp" ? gpId : null };
+  enterApp();
+};
+window.logout = function(){
+  session = { role:null, patientId:null, gpId:null };
+  document.getElementById("app").classList.remove("active");
+  document.getElementById("login-screen").style.display="flex";
+  renderLogin();
+};
+
+document.addEventListener("click", function(e){
+  var tab = e.target.closest && e.target.closest(".role-tab");
+  if(tab){
+    document.querySelectorAll(".role-tab").forEach(function(t){ t.classList.remove("active"); });
+    tab.classList.add("active");
+    document.getElementById("tab-patient").classList.toggle("hidden", tab.dataset.tab!=="patient");
+    document.getElementById("tab-staff").classList.toggle("hidden", tab.dataset.tab!=="staff");
+  }
+});
+
+/* =========================================================================
+   APP SHELL / NAV
+   ========================================================================= */
+var currentView = null;
+
+var NAV = {
+  patient: [
+    { id:"book", label:"Book appointment", icon:"＋" },
+    { id:"myappts", label:"My appointments", icon:"🗓" },
+    { id:"profile", label:"My profile", icon:"◎" }
+  ],
+  reception: [
+    { id:"schedule", label:"Live schedule", icon:"▤" },
+    { id:"manual", label:"Manual booking / override", icon:"✎" }
+  ],
+  gp: [
+    { id:"gpschedule", label:"My schedule", icon:"🗓" }
+  ],
+  manager: [
+    { id:"dashboard", label:"Analytics dashboard", icon:"▦" },
+    { id:"settings", label:"Clinic settings", icon:"⚙" }
+  ]
+};
+
+function enterApp(){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("app").classList.add("active");
+  currentView = NAV[session.role][0].id;
+  renderShell();
+}
+
+function renderShell(){
+  var navEl = document.getElementById("nav-items");
+  var label = document.createElement("div");
+  navEl.innerHTML = "";
+  var section = document.createElement("div");
+  section.className = "nav-section-label";
+  section.textContent = session.role==="patient" ? "Patient portal" : "Staff portal";
+  navEl.appendChild(section);
+
+  NAV[session.role].forEach(function(item){
+    var d = document.createElement("div");
+    d.className = "nav-item"+(currentView===item.id?" active":"");
+    d.innerHTML = '<span class="nav-icon">'+item.icon+'</span> '+item.label;
+    d.onclick = function(){ currentView = item.id; renderShell(); };
+    navEl.appendChild(d);
+  });
+
+  var who = "", roleLabel = "", initial="?";
+  if(session.role==="patient"){ var p=patientById(session.patientId); who=p?p.name:"Patient"; roleLabel="Patient"; initial=(who[0]||"P"); }
+  else if(session.role==="reception"){ who="Reception desk"; roleLabel="Reception Staff"; initial="R"; }
+  else if(session.role==="gp"){ var g=gpById(session.gpId); who=g?g.name:"GP"; roleLabel="GP"; initial="G"; }
+  else if(session.role==="manager"){ who="Practice Manager"; roleLabel="Clinic Manager"; initial="M"; }
+  document.getElementById("who-name").textContent = who;
+  document.getElementById("who-role").textContent = roleLabel;
+  document.getElementById("avatar-initial").textContent = initial.toUpperCase();
+
+  renderMain();
+}
+
+function renderMain(){
+  var main = document.getElementById("main");
+  var html = "";
+  if(session.role==="patient"){
+    if(currentView==="book") html = viewBook();
+    else if(currentView==="myappts") html = viewMyAppointments();
+    else if(currentView==="profile") html = viewProfile();
+  } else if(session.role==="reception"){
+    if(currentView==="schedule") html = viewLiveSchedule();
+    else if(currentView==="manual") html = viewManualBooking();
+  } else if(session.role==="gp"){
+    if(currentView==="gpschedule") html = viewGpSchedule();
+  } else if(session.role==="manager"){
+    if(currentView==="dashboard") html = viewDashboard();
+    else if(currentView==="settings") html = viewSettings();
+  }
+  main.innerHTML = html;
+  afterRender();
+}
+
+/* =========================================================================
+   VIEW: Book appointment (Patient)  — FR-05, FR-06, FR-10, UC-04/05/09
+   ========================================================================= */
+var bookState = { reason:REASON_OPTIONS[0], dayOffset:0, time:TIME_SLOTS[0], recommended:null, manualGpId:null };
+
+function viewBook(){
+  var p = patientById(session.patientId);
+  var dayOptions = [0,1,2,3,4,5,6].map(function(o){
+    return '<option value="'+o+'"'+(bookState.dayOffset===o?" selected":"")+'>'+todayLabel(o)+'</option>';
+  }).join("");
+  var timeOptions = TIME_SLOTS.map(function(t){
+    return '<option value="'+t+'"'+(bookState.time===t?" selected":"")+'>'+t+'</option>';
+  }).join("");
+  var reasonOptions = REASON_OPTIONS.map(function(r){
+    return '<option value="'+r+'"'+(bookState.reason===r?" selected":"")+'>'+r+'</option>';
+  }).join("");
+
+  var resultHtml = "";
+  if(bookState.recommended){
+    var rec = bookState.recommended;
+    var gp = bookState.manualGpId ? gpById(bookState.manualGpId) : rec.gp;
+    var free = bookState.manualGpId ? isSlotFree(gp.id, bookState.dayOffset, bookState.time) : rec.hadFreeSlot;
+
+    if(free){
+      resultHtml = '<div class="recommend-card">'+
+        '<div><div class="who">'+escapeHtml(gp.name)+' <span class="small muted">('+gp.specialty+')</span></div>'+
+        '<div class="why">'+(bookState.manualGpId?"Selected by you":"Recommended — currently the least-loaded GP for this reason")+
+        ' · '+caseload(gp.id)+' active booking'+(caseload(gp.id)===1?"":"s")+'</div></div>'+
+        '<div class="inline-actions">'+
+        '<button class="btn btn-secondary btn-sm" onclick="pickDifferentGp()">Choose a different GP</button>'+
+        '<button class="btn btn-primary btn-sm" onclick="confirmBooking()">Accept &amp; book</button>'+
+        '</div></div>';
+    } else {
+      resultHtml = '<div class="no-slot-card">'+
+        '<b>No open slot at that time.</b> '+escapeHtml(gp.name)+' (and other matching GPs) are booked for '+todayLabel(bookState.dayOffset)+' at '+bookState.time+'.'+
+        '<div class="inline-actions" style="margin-top:10px;">'+
+        '<button class="btn btn-secondary btn-sm" onclick="pickDifferentGp()">Try a different GP</button>'+
+        '<button class="btn btn-primary btn-sm" onclick="doJoinWaitlist()">Join the waitlist instead</button>'+
+        '</div></div>';
+    }
+
+    if(bookState.manualGpId===null){
+      var others = data.gps.filter(function(g){ return g.id!==rec.gp.id; });
+      resultHtml += '<div class="small muted" style="margin-bottom:14px;">Other GPs: '+others.map(function(g){
+        return '<a href="#" onclick="chooseGp(\''+g.id+'\');return false;">'+escapeHtml(g.name)+'</a>';
+      }).join(" · ")+'</div>';
+    }
+  }
+
+  return ''+
+  '<div class="topbar"><div><h1>Book an appointment</h1><div class="sub">Search by reason and preferred time — we\u2019ll recommend the best-fit, least-loaded GP.</div></div></div>'+
+  '<div class="demo-banner"><b>Logged in as '+escapeHtml(p?p.name:"Patient")+'.</b> Try booking a "Paediatric concern" or "Women\u2019s health" reason to see specialty-matched recommendations.</div>'+
+  '<div class="panel">'+
+    '<div class="grid-3">'+
+      '<div class="field"><label>Reason for visit</label><select id="f-reason" onchange="bookState.reason=this.value; bookState.recommended=null; renderMain();">'+reasonOptions+'</select></div>'+
+      '<div class="field"><label>Preferred date</label><select id="f-day" onchange="bookState.dayOffset=Number(this.value); bookState.recommended=null; renderMain();">'+dayOptions+'</select></div>'+
+      '<div class="field"><label>Preferred time</label><select id="f-time" onchange="bookState.time=this.value; bookState.recommended=null; renderMain();">'+timeOptions+'</select></div>'+
+    '</div>'+
+    (bookState.recommended ? '' : '<button class="btn btn-primary" onclick="findRecommendation()">Find appointment</button>')+
+    (bookState.recommended ? '<div style="margin-top:16px;">'+resultHtml+'</div>' : '')+
+  '</div>';
+}
+
+window.findRecommendation = function(){
+  bookState.manualGpId = null;
+  bookState.recommended = recommendGp(bookState.reason, bookState.dayOffset, bookState.time);
+  renderMain();
+};
+window.chooseGp = function(gpId){ bookState.manualGpId = gpId; renderMain(); };
+window.pickDifferentGp = function(){
+  var current = bookState.manualGpId || bookState.recommended.gp.id;
+  var idx = data.gps.findIndex(function(g){ return g.id===current; });
+  var next = data.gps[(idx+1)%data.gps.length];
+  bookState.manualGpId = next.id;
+  renderMain();
+};
+window.confirmBooking = function(){
+  var p = patientById(session.patientId);
+  var gp = bookState.manualGpId ? gpById(bookState.manualGpId) : bookState.recommended.gp;
+  bookAppointment(p.id, p.name, gp.id, bookState.dayOffset, bookState.time, bookState.reason);
+  toast("Booking confirmed with "+gp.name+" — a reminder has been scheduled.");
+  bookState = { reason:bookState.reason, dayOffset:0, time:TIME_SLOTS[0], recommended:null, manualGpId:null };
+  currentView = "myappts";
+  renderShell();
+};
+window.doJoinWaitlist = function(){
+  var p = patientById(session.patientId);
+  joinWaitlist(p.id, p.name, bookState.reason);
+  toast("You\u2019ve been added to the waitlist for \u201C"+bookState.reason+"\u201D.");
+  bookState = { reason:bookState.reason, dayOffset:0, time:TIME_SLOTS[0], recommended:null, manualGpId:null };
+  currentView = "myappts";
+  renderShell();
+};
+
+/* =========================================================================
+   VIEW: My appointments (Patient) — FR-07, FR-12, UC-06, UC-11
+   ========================================================================= */
+function viewMyAppointments(){
+  var p = patientById(session.patientId);
+  var mine = data.appointments.filter(function(a){ return a.patientId===p.id; })
+    .sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); });
+  var myWaitlist = data.waitlist.filter(function(w){ return w.patientId===p.id; });
+
+  var rows = mine.map(function(a){
+    var gp = gpById(a.gpId);
+    var canAct = a.status==="Booked";
+    return '<tr><td><b>'+fmtDate(a.date)+'</b><div class="small muted">'+a.time+'</div></td>'+
+      '<td>'+escapeHtml(gp.name)+'</td><td>'+escapeHtml(a.reason)+'</td><td>'+badge(a.status)+'</td>'+
+      '<td>'+(canAct?
+        '<div class="inline-actions"><button class="btn btn-ghost btn-sm" onclick="rescheduleAppt(\''+a.id+'\')">Reschedule</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="cancelMyAppt(\''+a.id+'\')">Cancel</button></div>'
+        : '<span class="muted small">—</span>')+
+      '</td></tr>';
+  }).join("") || '<tr class="empty-row"><td colspan="5">No appointments yet — book one from the "Book appointment" tab.</td></tr>';
+
+  var waitRows = myWaitlist.map(function(w){
+    return '<tr><td>'+escapeHtml(w.reason)+'</td><td>'+badge("Booked").replace("Booked","On waitlist").replace("badge-booked","badge-waitlist")+'</td>'+
+      '<td class="muted small">Added '+new Date(w.dateAdded).toLocaleDateString()+'</td></tr>';
+  }).join("");
+
+  return ''+
+  '<div class="topbar"><div><h1>My appointments</h1><div class="sub">View, reschedule or cancel your bookings.</div></div></div>'+
+  '<div class="panel"><h2>Upcoming &amp; past</h2><div class="panel-desc">Cancelling a slot automatically offers it to the next matching patient on the waitlist.</div>'+
+    '<table><thead><tr><th>Date &amp; time</th><th>GP</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+  '</div>'+
+  (myWaitlist.length ? '<div class="panel"><h2>Waitlist</h2><table><thead><tr><th>Reason</th><th>Status</th><th></th></tr></thead><tbody>'+waitRows+'</tbody></table></div>' : '');
+}
+window.cancelMyAppt = function(id){
+  var appt = byId(data.appointments,id);
+  if(!confirm("Cancel this appointment with "+gpById(appt.gpId).name+" on "+fmtDate(appt.date)+"?")) return;
+  var result = cancelAppointment(id, "Patient");
+  toast(result.reoffered ? "Cancelled — your slot was automatically offered to "+result.to+" on the waitlist." : "Appointment cancelled.");
+  renderMain();
+};
+window.rescheduleAppt = function(id){
+  var appt = byId(data.appointments,id);
+  bookState = { reason:appt.reason, dayOffset:0, time:TIME_SLOTS[0], recommended:null, manualGpId:null };
+  cancelAppointment(id, "Patient");
+  toast("Original slot released. Choose a new date and time to complete your reschedule.");
+  currentView = "book";
+  renderShell();
+};
+
+/* =========================================================================
+   VIEW: My profile (Patient) — FR-01
+   ========================================================================= */
+function viewProfile(){
+  var p = patientById(session.patientId);
+  return ''+
+  '<div class="topbar"><div><h1>My profile</h1><div class="sub">Contact details used for login and appointment reminders.</div></div></div>'+
+  '<div class="panel" style="max-width:420px;">'+
+    '<div class="field"><label>Full name</label><input id="prof-name" value="'+escapeHtml(p.name)+'" /></div>'+
+    '<div class="field"><label>Email or mobile</label><input id="prof-contact" value="'+escapeHtml(p.contact)+'" /></div>'+
+    '<button class="btn btn-primary" onclick="saveProfile()">Save changes</button>'+
+  '</div>';
+}
+window.saveProfile = function(){
+  var p = patientById(session.patientId);
+  p.name = document.getElementById("prof-name").value.trim() || p.name;
+  p.contact = document.getElementById("prof-contact").value.trim() || p.contact;
+  saveData();
+  toast("Profile updated.");
+  renderShell();
+};
+
+/* =========================================================================
+   VIEW: Live schedule (Reception) — FR-08, FR-09, UC-07/08
+   ========================================================================= */
+var scheduleDayOffset = 0;
+function viewLiveSchedule(){
+  var dayOptions = [0,1,2,3,4,5,6].map(function(o){
+    return '<option value="'+o+'"'+(scheduleDayOffset===o?" selected":"")+'>'+todayLabel(o)+'</option>';
+  }).join("");
+  var dateIso = isoDate(addDays(TODAY,scheduleDayOffset));
+  var todays = data.appointments.filter(function(a){ return a.date===dateIso && a.status!=="Cancelled"; })
+    .sort(function(a,b){ return a.time.localeCompare(b.time) || a.gpId.localeCompare(b.gpId); });
+
+  var rows = todays.map(function(a){
+    var gp = gpById(a.gpId);
+    return '<tr><td>'+a.time+'</td><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+gp.color+';margin-right:6px;"></span>'+escapeHtml(gp.name)+'</td>'+
+      '<td>'+escapeHtml(a.patientName)+'</td><td>'+escapeHtml(a.reason)+'</td><td>'+badge(a.status)+'</td></tr>';
+  }).join("") || '<tr class="empty-row"><td colspan="5">No bookings for this day.</td></tr>';
+
+  return ''+
+  '<div class="topbar"><div><h1>Live schedule</h1><div class="sub">Consolidated view of every GP\u2019s appointments.</div></div>'+
+  '<select style="width:auto;" onchange="scheduleDayOffset=Number(this.value); renderMain();">'+dayOptions+'</select></div>'+
+  '<div class="panel"><table><thead><tr><th>Time</th><th>GP</th><th>Patient</th><th>Reason</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+  gpWorkloadPanel();
+}
+
+function gpWorkloadPanel(){
+  var m = maxCaseload();
+  var rows = data.gps.map(function(g){
+    var c = caseload(g.id);
+    var pct = Math.round((c/m)*100);
+    var cls = pct>75?"high":(pct>45?"mid":"");
+    return '<tr><td>'+escapeHtml(g.name)+'<div class="small muted">'+g.specialty+'</div></td>'+
+      '<td><div class="gp-load"><div class="gp-load-bar '+cls+'"><span style="width:'+pct+'%"></span></div>'+c+' active</div></td></tr>';
+  }).join("");
+  return '<div class="panel"><h2>Current GP workload</h2><div class="panel-desc">Used by the allocation engine to recommend the least-loaded GP.</div>'+
+    '<table><tbody>'+rows+'</tbody></table></div>';
+}
+
+/* =========================================================================
+   VIEW: Manual booking / override (Reception) — FR-08, FR-11, UC-07/10
+   ========================================================================= */
+var manualState = { patientId: null, gpId:null, reason:REASON_OPTIONS[0], dayOffset:0, time:TIME_SLOTS[0] };
+function viewManualBooking(){
+  var patientOptions = data.patients.map(function(p){
+    return '<option value="'+p.id+'"'+(manualState.patientId===p.id?" selected":"")+'>'+escapeHtml(p.name)+'</option>';
+  }).join("");
+  var gpOptions = '<option value="">— Auto-recommend —</option>'+data.gps.map(function(g){
+    return '<option value="'+g.id+'"'+(manualState.gpId===g.id?" selected":"")+'>'+escapeHtml(g.name)+' ('+caseload(g.id)+' active)</option>';
+  }).join("");
+  var dayOptions = [0,1,2,3,4,5,6].map(function(o){
+    return '<option value="'+o+'"'+(manualState.dayOffset===o?" selected":"")+'>'+todayLabel(o)+'</option>';
+  }).join("");
+  var timeOptions = TIME_SLOTS.map(function(t){
+    return '<option value="'+t+'"'+(manualState.time===t?" selected":"")+'>'+t+'</option>';
+  }).join("");
+  var reasonOptions = REASON_OPTIONS.map(function(r){
+    return '<option value="'+r+'"'+(manualState.reason===r?" selected":"")+'>'+r+'</option>';
+  }).join("");
+
+  var openToday = data.appointments.filter(function(a){ return a.status==="Booked"; })
+    .sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); }).slice(0,8);
+  var overrideRows = openToday.map(function(a){
+    var gp = gpById(a.gpId);
+    var options = data.gps.map(function(g){
+      return '<option value="'+g.id+'"'+(g.id===a.gpId?" selected":"")+'>'+escapeHtml(g.name)+'</option>';
+    }).join("");
+    return '<tr><td>'+fmtDate(a.date)+' '+a.time+'</td><td>'+escapeHtml(a.patientName)+'</td>'+
+      '<td><select onchange="overrideGp(\''+a.id+'\',this.value); renderMain();">'+options+'</select></td></tr>';
+  }).join("") || '<tr class="empty-row"><td colspan="3">No upcoming bookings to override.</td></tr>';
+
+  return ''+
+  '<div class="topbar"><div><h1>Manual booking &amp; override</h1><div class="sub">Book on behalf of a phone or walk-in patient, or reassign an existing booking.</div></div></div>'+
+  '<div class="panel"><h2>New booking on behalf of a patient</h2>'+
+    '<div class="grid-3">'+
+      '<div class="field"><label>Patient</label><select id="m-patient" onchange="manualState.patientId=this.value;">'+patientOptions+'</select></div>'+
+      '<div class="field"><label>Reason</label><select id="m-reason" onchange="manualState.reason=this.value;">'+reasonOptions+'</select></div>'+
+      '<div class="field"><label>GP</label><select id="m-gp" onchange="manualState.gpId=this.value||null;">'+gpOptions+'</select></div>'+
+      '<div class="field"><label>Date</label><select id="m-day" onchange="manualState.dayOffset=Number(this.value);">'+dayOptions+'</select></div>'+
+      '<div class="field"><label>Time</label><select id="m-time" onchange="manualState.time=this.value;">'+timeOptions+'</select></div>'+
+    '</div>'+
+    '<button class="btn btn-primary" onclick="submitManualBooking()">Create booking</button>'+
+  '</div>'+
+  '<div class="panel"><h2>Override an upcoming booking\u2019s GP</h2><div class="panel-desc">Reassign a patient to a different GP — e.g. to honour a specific request.</div>'+
+    '<table><thead><tr><th>When</th><th>Patient</th><th>Assigned GP</th></tr></thead><tbody>'+overrideRows+'</tbody></table>'+
+  '</div>';
+}
+window.submitManualBooking = function(){
+  if(!manualState.patientId) manualState.patientId = data.patients[0].id;
+  var p = patientById(manualState.patientId);
+  var gp = manualState.gpId ? gpById(manualState.gpId) : recommendGp(manualState.reason, manualState.dayOffset, manualState.time).gp;
+  if(!isSlotFree(gp.id, manualState.dayOffset, manualState.time)){
+    toast("That GP already has a booking at that time — pick another slot or GP.");
+    return;
+  }
+  bookAppointment(p.id, p.name, gp.id, manualState.dayOffset, manualState.time, manualState.reason);
+  toast("Booking created for "+p.name+" with "+gp.name+".");
+  renderMain();
+};
+
+/* =========================================================================
+   VIEW: GP schedule — FR-13, UC-12
+   ========================================================================= */
+function viewGpSchedule(){
+  var gp = gpById(session.gpId);
+  var mine = data.appointments.filter(function(a){ return a.gpId===gp.id && a.status!=="Cancelled"; })
+    .sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); });
+  var rows = mine.map(function(a){
+    return '<tr><td><b>'+fmtDate(a.date)+'</b><div class="small muted">'+a.time+'</div></td><td>'+escapeHtml(a.patientName)+'</td><td>'+escapeHtml(a.reason)+'</td><td>'+badge(a.status)+'</td></tr>';
+  }).join("") || '<tr class="empty-row"><td colspan="4">No bookings scheduled.</td></tr>';
+
+  return ''+
+  '<div class="topbar"><div><h1>My schedule</h1><div class="sub">'+escapeHtml(gp.name)+' · '+gp.specialty+'</div></div></div>'+
+  '<div class="grid-3" style="margin-bottom:18px;">'+
+    statCard(caseload(gp.id), "Active bookings")+
+    statCard(mine.filter(function(a){return a.status==="Completed";}).length, "Completed")+
+    statCard(mine.filter(function(a){return a.status==="No-show";}).length, "No-shows")+
+  '</div>'+
+  '<div class="panel"><table><thead><tr><th>Date &amp; time</th><th>Patient</th><th>Reason</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function statCard(num,label){
+  return '<div class="panel stat"><div class="num">'+num+'</div><div class="label">'+label+'</div></div>';
+}
+
+/* =========================================================================
+   VIEW: Analytics dashboard (Clinic Manager) — FR-16/17/18, UC-15/16
+   ========================================================================= */
+function viewDashboard(){
+  var total = data.appointments.length;
+  var noShow = data.appointments.filter(function(a){return a.status==="No-show";}).length;
+  var cancelled = data.appointments.filter(function(a){return a.status==="Cancelled";}).length;
+  var booked = data.appointments.filter(function(a){return a.status==="Booked";}).length;
+  var noShowRate = total ? Math.round((noShow/total)*1000)/10 : 0;
+
+  return ''+
+  '<div class="topbar"><div><h1>Analytics dashboard</h1><div class="sub">Utilisation, no-show trend and demand — generated from recorded booking events (FR-16–FR-18).</div></div></div>'+
+  '<div class="grid-3" style="margin-bottom:18px;">'+
+    statCard(total, "Total recorded events")+
+    statCard(noShowRate+"%", "No-show rate (target: ~10%)")+
+    statCard(booked, "Currently booked")+
+  '</div>'+
+  '<div class="grid-2">'+
+    '<div class="panel"><h2>GP workload balance</h2><div class="panel-desc">Active bookings per GP — the same figures used by the allocation engine.</div><div class="chart-wrap"><canvas id="chart-workload"></canvas></div></div>'+
+    '<div class="panel"><h2>Appointment status breakdown</h2><div class="panel-desc">All recorded appointment events to date.</div><div class="chart-wrap"><canvas id="chart-status"></canvas></div></div>'+
+  '</div>'+
+  '<div class="panel"><h2>Demand trend (7-day window)</h2><div class="panel-desc">Bookings per day, centred on today — supports staffing and capacity decisions (RR-04).</div><div class="chart-wrap"><canvas id="chart-trend"></canvas></div></div>'+
+  '<div class="panel"><h2>Export reports</h2><div class="panel-desc">RR-01–RR-04 report set (utilisation, no-show trend, workload balance, demand forecast).</div>'+
+    '<div class="inline-actions"><button class="btn btn-secondary btn-sm" onclick="toast(\'Report view opened below \u2014 export-to-file is planned for the implementation phase.\')">View report summary</button></div>'+
+  '</div>';
+}
+
+/* =========================================================================
+   VIEW: Clinic settings — FR-19, FR-20
+   ========================================================================= */
+function viewSettings(){
+  var rows = data.gps.map(function(g){
+    return '<tr><td>'+escapeHtml(g.name)+'</td><td>'+g.specialty+'</td><td>'+caseload(g.id)+' active</td>'+
+      '<td><span class="badge badge-booked">Active</span></td></tr>';
+  }).join("");
+  return ''+
+  '<div class="topbar"><div><h1>Clinic settings</h1><div class="sub">Manage GP profiles and clinic-wide configuration.</div></div></div>'+
+  '<div class="panel"><h2>GP profiles</h2>'+
+    '<table><thead><tr><th>GP</th><th>Specialty</th><th>Current caseload</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+  '</div>'+
+  '<div class="panel" style="max-width:420px;"><h2>Clinic operating hours</h2>'+
+    '<div class="field"><label>Hours</label><input id="set-hours" value="'+escapeHtml(data.clinicSettings.hours)+'" /></div>'+
+    '<button class="btn btn-primary" onclick="saveSettings()">Save</button>'+
+  '</div>';
+}
+window.saveSettings = function(){
+  data.clinicSettings.hours = document.getElementById("set-hours").value.trim() || data.clinicSettings.hours;
+  saveData();
+  toast("Clinic settings updated.");
+};
+
+/* =========================================================================
+   POST-RENDER: charts
+   ========================================================================= */
+var chartRefs = {};
+function afterRender(){
+  Object.keys(chartRefs).forEach(function(k){ if(chartRefs[k]){ chartRefs[k].destroy(); chartRefs[k]=null; } });
+  if(currentView!=="dashboard" || session.role!=="manager") return;
+  if(typeof Chart==="undefined") return;
+
+  var gridColor = getComputedStyle(document.body).getPropertyValue('--border').trim();
+  var textColor = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+  Chart.defaults.color = textColor;
+  Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+  Chart.defaults.font.size = 11.5;
+
+  var wCtx = document.getElementById("chart-workload");
+  if(wCtx){
+    chartRefs.workload = new Chart(wCtx, {
+      type:"bar",
+      data:{ labels:data.gps.map(function(g){return g.name.replace("Dr ","");}),
+        datasets:[{ data:data.gps.map(function(g){return caseload(g.id);}), backgroundColor:data.gps.map(function(g){return g.color;}), borderRadius:4, maxBarThickness:34 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ y:{ beginAtZero:true, ticks:{precision:0}, grid:{color:gridColor} }, x:{ grid:{display:false} } } }
+    });
+  }
+
+  var sCtx = document.getElementById("chart-status");
+  if(sCtx){
+    var statuses = ["Booked","Completed","Cancelled","No-show"];
+    var counts = statuses.map(function(s){ return data.appointments.filter(function(a){return a.status===s;}).length; });
+    chartRefs.status = new Chart(sCtx, {
+      type:"doughnut",
+      data:{ labels:statuses, datasets:[{ data:counts, backgroundColor:["#2F8F5B","#8AA0B3","#B3261E","#9C6B0B"], borderWidth:0 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{boxWidth:10, padding:12}}} }
+    });
+  }
+
+  var tCtx = document.getElementById("chart-trend");
+  if(tCtx){
+    var offsets = [-3,-2,-1,0,1,2,3];
+    var labels = offsets.map(function(o){ return todayLabel(o); });
+    var counts = offsets.map(function(o){
+      var iso = isoDate(addDays(TODAY,o));
+      return data.appointments.filter(function(a){ return a.date===iso && a.status!=="Cancelled"; }).length;
+    });
+    chartRefs.trend = new Chart(tCtx, {
+      type:"line",
+      data:{ labels:labels, datasets:[{ data:counts, borderColor:"#1F4E79", backgroundColor:"rgba(31,78,121,.12)", fill:true, tension:.3, pointRadius:4, pointBackgroundColor:"#1F4E79" }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ y:{ beginAtZero:true, ticks:{precision:0}, grid:{color:gridColor} }, x:{ grid:{display:false} } } }
+    });
+  }
+}
+
+/* =========================================================================
+   EXPOSE INTERNAL FUNCTIONS CALLED DIRECTLY FROM INLINE HTML HANDLERS
+   (inline onclick/onchange attributes resolve identifiers on window)
+   ========================================================================= */
+window.renderMain = renderMain;
+window.overrideGp = overrideGp;
+window.resetDemoData = resetDemoData;
+window.toast = toast;
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+function render(){
+  if(session.role){ renderShell(); } else { renderLogin(); }
+}
+
+loadData();
+renderLogin();
+
+})();
+</script>
+</body>
+</html>
