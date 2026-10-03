@@ -1108,6 +1108,16 @@ function afterRender(){
    EXPOSE INTERNAL FUNCTIONS CALLED DIRECTLY FROM INLINE HTML HANDLERS
    (inline onclick/onchange attributes resolve identifiers on window)
    ========================================================================= */
+// Fix: inline onchange handlers reference these state variables by name,
+// but they live inside the IIFE scope. Expose them on window via getters/setters
+// so the dropdowns on the booking, live schedule and manual booking screens work.
+["bookState","manualState","scheduleDayOffset"].forEach(function(name){
+  Object.defineProperty(window, name, {
+    get: function(){ return eval(name); },
+    set: function(v){ eval(name + " = v"); },
+    configurable: true
+  });
+});
 window.renderMain = renderMain;
 window.overrideGp = overrideGp;
 window.resetDemoData = resetDemoData;
